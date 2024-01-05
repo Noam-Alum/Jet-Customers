@@ -1,6 +1,6 @@
 # JetCustomers - Find Common jet clients with ease
 #
-# Easly identify common customers by your own notes.
+# Customers management personal identification tool
 #
 # powered by python
 # Written by Noam Alum
