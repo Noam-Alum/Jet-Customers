@@ -1,12 +1,11 @@
 # JetCustomers - Find Common jet clients with ease
 #
-# Customers management personal identification tool
+# Easly identify common customers by your own notes.
 #
 # powered by python
 # Written by Noam Alum
 #
-# Documentation at https://ncode.codes/assetss/single_snippet/Single_codes.php?code=#
-# GitHub page at https://github.com/Noam-Alum/#
+# GitHub page at https://github.com/Noam-Alum/Jet-Customers/
 #
 # © Ncode. All rights reserved
 # Visit ncode.codes for more scripts like this :)
