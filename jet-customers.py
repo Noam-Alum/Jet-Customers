@@ -1,159 +1,80 @@
-# JetCustomers - Find Common jet clients with ease
+#!/usr/bin/env python3
+# lpi_linux.py - Prepare for the LPI 010-160 certification with a practice exam sourced from dumps
 #
-# Easly identify common customers by your own notes.
-#
-# powered by python
+# Powered by Python 3
 # Written by Noam Alum
 #
-# GitHub page at https://github.com/Noam-Alum/Jet-Customers/
-#
+# GitHub: https://github.com/Noam-Alum/lpi_010_160_exam/
 # © Ncode. All rights reserved
 # Visit ncode.codes for more scripts like this :)
 
-## IMPORTS
-import sqlite3
-import os
+import json
+import requests
+import random
 
-## CONFIGURATION
-# DATABASE
-DB_location="/var/lib/jet-customers/"
-DB_name="Jet_Customers_db"
+def fetch_data():
+    url = "https://ncode.codes/files/lpi/lpi_questions.json"
 
-## FUNCTIONS
-# RUN QUERY
-def sqlite(query):
-    # define sqlite
-    connection = sqlite3.connect(DB_location + DB_name)
-    cursor = connection.cursor()
+    try:
+        response = requests.get(url)
+        response.raise_for_status()
+        data = response.json()
+    except requests.exceptions.HTTPError as errh:
+        print(f"HTTP Error: {errh}")
+        exit()
+    except requests.exceptions.RequestException as err:
+        print(f"Request Error: {err}")
+        exit()
 
-    # run query
-    cursor.execute(query)
+    return data
 
-    # fetch result
-    result = cursor.fetchall()
+def main():
+    data = fetch_data()
 
-    # commit changes and close connection
-    connection.commit()
-    connection.close()
+    # Randomize the order of questions
+    random.shuffle(data)
 
-    return result
+    correct_answers = 0
+    answers_review = ""
 
-# add
-def sqlite_add():
-    client_info = ['full_name', 'company', 'mail', 'phone', 'url', 'note']
-    user_inputs = {}
+    q_count=1
+    for question in data:
+        print(f"\n{q_count} | {question['question']}\n")
 
-    for info in client_info:
-        user_input = input(f"Clients {info} [skip for unknown] : ")
-        if user_input.strip() and (info != 'phone' or user_input.strip().isdigit()):
-            user_inputs[info] = user_input
+        q_answers = question['answer']
+        options = []
+        answers = []
+
+        print("Options:\n")
+        for i, option in enumerate(question['options'], start=1):
+            options.append(i)
+            print(f"{i}) {option}")
+            if option in q_answers:
+                answers.append(i)
+
+        choices = []
+
+        while len(choices) < len(answers):
+            choice = input("> ")
+            while not choice.isdigit() or int(choice) < 0 or int(choice) > len(options) or choice in choices:
+                choice = input("> ")
+
+            choices.append(int(choice))
+
+        if all(c in choices for c in answers):
+            correct_answers += 1
         else:
-            user_inputs[info] = "NULL"
+            answers_review += (
+                f"\n-------------------\n{q_count} | {question['question']}\n\nAnswer:\n"
+                + "\n".join(str(answer) for answer in q_answers)
+                + "\n"
+            )
 
-    sqlite(f"INSERT INTO customers (\
-        full_name, company, mail, phone, url, note\
-    ) VALUES (\
-        '{user_inputs['full_name']}',\
-        '{user_inputs['company']}',\
-        '{user_inputs['mail']}',\
-        '{user_inputs['phone']}',\
-        '{user_inputs['url']}',\
-        '{user_inputs['note']}'\
-    );")
+        print("\n######################")
+        q_count+=1
 
-# search
-def sqlite_search():
-    table_schema = ['full_name', 'company', 'mail', 'phone', 'url', 'note']
+    score = (correct_answers / len(data)) * 100
+    print(f"You got: {score}!\n######################\nReview:{answers_review}")
 
-    filters = []
-    while len(filters) < 5:
-        filter = input(f"What information would you like to get? (DONE to exit) [Current: {filters}] : ")
-        if filter == "DONE":
-            break
-        elif filter == "*":
-            filters.append(filter)
-            break
-        elif filter not in table_schema:
-            print(f"\nFilter does not exist, choose from this selection: \n{table_schema}\n")
-        elif filter:
-            filters.append(filter)
-
-    search = ""
-    while not search:
-        search = input("What would you like to search for? : ")
-        if search not in table_schema:
-            print(f"\nSearch does not exist, choose from this selection: \n{table_schema}\n")
-            search=""
-
-    what2find = ""
-    while not what2find:
-        what2find = input(f"What would you like to search for in {search}? : ")
-
-    res = sqlite(f"SELECT {', '.join(filters)} FROM customers WHERE {search} LIKE '%{what2find}%'")
-
-    if res:
-        print(f"\nResults:\n{', '.join(filters)}")
-        for row in res:
-            print(row)
-    else:
-        print("\nNo matching records found.")
-
-# remove
-def sqlite_remove():
-    table_schema = ['full_name', 'company', 'mail', 'phone', 'url', 'note']
-
-    search = ""
-    while not search:
-        search = input("What would identify what you are trying to remove? : ")
-        if search not in table_schema:
-            print(f"\nSearch does not exist, choose from this selection: \n{table_schema}\n")
-            search=""
-
-    what2find = ""
-    while not what2find:
-        what2find = input(f"What would you like to search for in {search}? : ")
-
-    sqlite(f"DELETE FROM customers WHERE {search} = '{what2find}';")
-
-    # Verifying removal
-    res = sqlite(f"SELECT * FROM customers WHERE {search} = '{what2find}';")
-
-    if not res:
-        print(f"\nSuccessfully removed {what2find} or it does not exist.")
-    else:
-        print(f"\nFailed to remove {what2find}. Record still exists.")
-
-## MAIN
-# create dir if not exist
-os.makedirs(DB_location, exist_ok=True)
-
-# create db & table if not exist
-sqlite("CREATE TABLE IF NOT EXISTS customers (\
-    id INTEGER PRIMARY KEY,\
-    full_name TEXT NOT NULL,\
-    company TEXT NOT NULL,\
-    mail TEXT NOT NULL,\
-    phone INTEGER,\
-    url TEXT NOT NULL,\
-    note TEXT\
-);")
-
-# loop
-while True:
-
-    # get actiom
-    actions = ['add', 'remove', 'search']
-    action=""
-    while not action:
-        action = input("What action would you like to take? : ")
-        if action not in actions:
-            print(f"\nPlease choose from the following actions:\n{actions}\n")
-            action = ""
-
-    # run action
-    if action == "add":
-        sqlite_add()
-    elif action == "remove":
-        sqlite_remove()
-    else:
-        sqlite_search()
+if __name__ == "__main__":
+    main()
