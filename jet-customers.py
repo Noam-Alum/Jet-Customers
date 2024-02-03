@@ -8,10 +8,12 @@
 # © Ncode. All rights reserved
 # Visit ncode.codes for more scripts like this :)
 
+### IMPORTS
 import json
 import requests
 import random
 
+### get json
 def fetch_data():
     url = "https://ncode.codes/files/lpi/lpi_questions.json"
 
